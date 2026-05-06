@@ -521,7 +521,7 @@ class ReportController extends Controller
         }
 
         $pdf = Pdf::loadView('pdf.customers_list_thermal', $data);
-        $pdf->setPaper([0.0, 0.0, 226.77, 283.46], 'portrait');
+        $pdf->setPaper([0.0, 0.0, 204.0, 283.46], 'portrait');
         return $pdf->stream('customers_thermal.pdf');
     }
 
