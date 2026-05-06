@@ -13,6 +13,8 @@ use App\Models\Expense;
 use App\Models\EquityTxn;
 use App\Models\Receipt;
 use App\Models\Payment;
+use App\Models\StockAdjustment;
+use Carbon\Carbon;
 
 class FinancialReportController extends Controller
 {
@@ -88,36 +90,82 @@ class FinancialReportController extends Controller
         ));
     }
 
-    public function profitLoss()
+    public function profitLoss(Request $request)
     {
-        $totalSales = Sale::sum('total_amount');
-        
-        $openingInventory = Product::all()->sum(function($p) {
-            return $p->opening_qty * $p->purchase_price;
-        });
-        
-        $purchases = Purchase::sum('total_amount');
-        
-        $closingInventory = Product::where('is_active', true)->get()->sum(function($p) {
-            return $p->stock_qty * $p->purchase_price;
-        });
+        $data = $this->getProfitLossData($request);
+        return view('reports.profit_loss', $data);
+    }
 
-        $cogs = $openingInventory + $purchases - $closingInventory;
-        $grossProfit = $totalSales - $cogs;
+    public function profitLossThermal(Request $request)
+    {
+        $data = $this->getProfitLossData($request);
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.profit_loss_thermal', $data);
         
-        $expensesByCategory = Expense::with('category')->get()->groupBy(function($e) {
-            return $e->category->name ?? 'Uncategorized';
-        })->map(function($exps) {
-            return $exps->sum('amount');
-        });
+        // Height: Header/Summary ~300pt + ~200pt per daily breakup (vertical layout)
+        $dayCount = count($data['dailyBreakdown']);
+        $dynamicHeight = 300 + ($dayCount * 200);
+        $pdf->setPaper([0.0, 0.0, 226.77, $dynamicHeight], 'portrait');
         
-        $totalExpenses = $expensesByCategory->sum();
+        return $pdf->stream('profit_loss_thermal.pdf');
+    }
+
+    private function getProfitLossData(Request $request)
+    {
+        $start = $request->input('start_date', date('Y-m-d'));
+        $end = $request->input('end_date', date('Y-m-d'));
+
+        // Summary Calculations
+        $totalSales = Sale::whereBetween('date', [$start, $end])->sum('total_amount');
+        $totalPurchases = Purchase::whereBetween('date', [$start, $end])->sum('total_amount');
+        $grossProfit = $totalSales - $totalPurchases;
+        $totalExpenses = Expense::whereBetween('date', [$start, $end])->sum('amount');
         $netProfit = $grossProfit - $totalExpenses;
 
-        return view('reports.profit_loss', compact(
-            'totalSales', 'openingInventory', 'purchases', 'closingInventory', 'cogs',
-            'grossProfit', 'expensesByCategory', 'totalExpenses', 'netProfit'
-        ));
+        $stockIncreases = StockAdjustment::where('type', 'increase')->whereBetween('date', [$start, $end])->sum('amount');
+        $stockDecreases = StockAdjustment::where('type', 'decrease')->whereBetween('date', [$start, $end])->sum('amount');
+        $totalStockAdjustment = $stockIncreases - $stockDecreases;
+
+        // Daily Breakdown
+        $dailyBreakdown = [];
+        $current = Carbon::parse($start);
+        $endDate = Carbon::parse($end);
+
+        // Limit range to prevent performance issues if requested range is too large
+        if ($current->diffInDays($endDate) > 366) {
+            $endDate = $current->copy()->addYear();
+        }
+
+        while ($current->lte($endDate)) {
+            $d = $current->format('Y-m-d');
+            
+            $dSales = Sale::where('date', $d)->sum('total_amount');
+            $dPurchases = Purchase::where('date', $d)->sum('total_amount');
+            $dGross = $dSales - $dPurchases;
+            $dExpenses = Expense::where('date', $d)->sum('amount');
+            $dNet = $dGross - $dExpenses;
+            
+            $dIncreases = StockAdjustment::where('type', 'increase')->where('date', $d)->sum('amount');
+            $dDecreases = StockAdjustment::where('type', 'decrease')->where('date', $d)->sum('amount');
+            $dStockAdj = $dIncreases - $dDecreases;
+
+            if ($dSales != 0 || $dPurchases != 0 || $dExpenses != 0 || $dStockAdj != 0) {
+                $dailyBreakdown[] = [
+                    'date' => $d,
+                    'sales' => $dSales,
+                    'purchases' => $dPurchases,
+                    'gross' => $dGross,
+                    'expenses' => $dExpenses,
+                    'net' => $dNet,
+                    'stock_adj' => $dStockAdj,
+                ];
+            }
+            $current->addDay();
+        }
+
+        return compact(
+            'start', 'end', 'totalSales', 'totalPurchases', 'grossProfit', 
+            'totalExpenses', 'netProfit', 'totalStockAdjustment', 'dailyBreakdown'
+        );
     }
 
     public function balanceSheet()

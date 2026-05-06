@@ -37,7 +37,7 @@
             </td>
             <td style="text-align: right;">
                 <strong>Period:</strong><br>
-                {{ $start->format('d-M-y') }} to {{ $end->format('d-M-y') }}
+                {{ $start ? $start->format('d-M-y') : 'All Time' }} to {{ $end ? $end->format('d-M-y') : 'Now' }}
             </td>
         </tr>
     </table>

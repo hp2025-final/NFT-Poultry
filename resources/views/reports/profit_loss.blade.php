@@ -3,118 +3,146 @@
 @section('title', 'Profit & Loss Statement - NF Dev')
 
 @section('content')
-<div class="row align-items-center mb-4">
+<div class="row align-items-center mb-4 no-print">
     <div class="col-sm-6">
         <h2 class="mb-0 text-primary fw-bold">Profit & Loss Statement</h2>
-        <p class="text-muted mb-0 small uppercase">All-time Financial Performance</p>
+        <p class="text-muted mb-0 small text-uppercase">Financial Performance Analysis</p>
     </div>
     <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
+        <a href="{{ route('reports.profit_loss_thermal', ['start_date' => $start, 'end_date' => $end]) }}" target="_blank" class="btn btn-outline-info shadow-sm no-print me-2">
+            <i class="bi bi-printer-fill me-1"></i>Print Thermal (79mm)
+        </a>
         <button onclick="window.print()" class="btn btn-outline-secondary shadow-sm no-print">
             <i class="bi bi-printer me-1"></i>Print Report
         </button>
     </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-lg-8">
-        <div class="card border-0 shadow-sm overflow-hidden">
-            <div class="card-header bg-white py-3 border-0">
-                <h5 class="mb-0 fw-bold">Operating Results</h5>
+{{-- Date Filter Card --}}
+<div class="card border-0 shadow-sm mb-4 no-print">
+    <div class="card-body">
+        <form action="{{ route('reports.profit_loss') }}" method="GET" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label fw-bold small text-uppercase">From Date</label>
+                <input type="text" name="start_date" class="form-control js-date" value="{{ $start }}">
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <tbody class="border-top-0">
-                            {{-- Income Section --}}
-                            <tr class="bg-light table-active">
-                                <td class="ps-3 fw-bold py-2" colspan="2">INCOME</td>
-                            </tr>
-                            <tr>
-                                <td class="ps-4 py-2">Total Sales Revenue</td>
-                                <td class="text-end pe-3 fw-bold">{{ number_format($totalSales, 2) }}</td>
-                            </tr>
-                            
-                            {{-- COGS Section --}}
-                            <tr class="bg-light table-active">
-                                <td class="ps-3 fw-bold py-2" colspan="2">COST OF GOODS SOLD (COGS)</td>
-                            </tr>
-                            <tr>
-                                <td class="ps-4 py-2">Opening Inventory Value</td>
-                                <td class="text-end pe-3">{{ number_format($openingInventory, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td class="ps-4 py-2">Add: Total Purchases</td>
-                                <td class="text-end pe-3 border-bottom">{{ number_format($purchases, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td class="ps-4 py-2">Less: Closing Inventory Value</td>
-                                <td class="text-end pe-3 text-secondary italic">({{ number_format($closingInventory, 2) }})</td>
-                            </tr>
-                            <tr class="fw-bold bg-light-subtle">
-                                <td class="ps-3 py-2 text-uppercase">Total Cost of Goods Sold</td>
-                                <td class="text-end pe-3 border-top">{{ number_format($cogs, 2) }}</td>
-                            </tr>
+            <div class="col-md-4">
+                <label class="form-label fw-bold small text-uppercase">To Date</label>
+                <input type="text" name="end_date" class="form-control js-date" value="{{ $end }}">
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-filter me-1"></i>Filter Report
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
-                            <tr class="fw-bold fs-5 text-primary border-top border-bottom">
-                                <td class="ps-3 py-3">GROSS PROFIT</td>
-                                <td class="text-end pe-3 py-3">{{ number_format($grossProfit, 2) }}</td>
-                            </tr>
-
-                            {{-- Expenses Section --}}
-                            <tr class="bg-light table-active">
-                                <td class="ps-3 fw-bold py-2" colspan="2">OPERATING EXPENSES</td>
-                            </tr>
-                            @foreach($expensesByCategory as $category => $amount)
-                            <tr>
-                                <td class="ps-4 py-2 text-capitalize">{{ $category }}</td>
-                                <td class="text-end pe-3">{{ number_format($amount, 2) }}</td>
-                            </tr>
-                            @endforeach
-                            <tr class="fw-bold bg-light-subtle">
-                                <td class="ps-3 py-2 text-uppercase">Total Operating Expenses</td>
-                                <td class="text-end pe-3 border-top text-danger">({{ number_format($totalExpenses, 2) }})</td>
-                            </tr>
-
-                            <tr class="fw-bold fs-4 {{ $netProfit >= 0 ? 'text-success' : 'text-danger' }} bg-light">
-                                <td class="ps-3 py-4">NET PROFIT / LOSS</td>
-                                <td class="text-end pe-3 py-4 text-decoration-underline">{{ number_format($netProfit, 2) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+{{-- Summary Section --}}
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
+            <div class="card-body">
+                <h6 class="text-muted small text-uppercase fw-bold mb-1">Total Sale</h6>
+                <h3 class="fw-bold mb-0 text-primary">{{ number_format($totalSales, 2) }}</h3>
             </div>
         </div>
     </div>
-    
-    <div class="col-lg-4">
-        <div class="card border-0 shadow-sm bg-primary text-white mb-4">
-            <div class="card-body p-4 text-center">
-                <div class="opacity-75 small text-uppercase mb-2">Total Sales</div>
-                <h2 class="fw-bold mb-0">{{ number_format($totalSales, 2) }}</h2>
-            </div>
-        </div>
-        
-        <div class="card border-0 shadow-sm bg-success text-white mb-4">
-            <div class="card-body p-4 text-center">
-                <div class="opacity-75 small text-uppercase mb-2 text-white">Gross Profit Margin</div>
-                <h2 class="fw-bold mb-0">
-                    {{ $totalSales > 0 ? number_format(($grossProfit / $totalSales) * 100, 1) : '0' }}%
-                </h2>
-            </div>
-        </div>
-
-        <div class="card border-0 shadow-sm border-start border-4 border-info">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
             <div class="card-body">
-                <h6 class="fw-bold text-uppercase small text-muted mb-3 opacity-75">Inventory Status</h6>
-                <div class="d-flex justify-content-between mb-2">
-                    <span class="text-muted">Opening:</span>
-                    <span class="fw-bold">{{ number_format($openingInventory, 2) }}</span>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span class="text-muted">Closing:</span>
-                    <span class="fw-bold">{{ number_format($closingInventory, 2) }}</span>
-                </div>
+                <h6 class="text-muted small text-uppercase fw-bold mb-1">Total Purchase</h6>
+                <h3 class="fw-bold mb-0 text-warning">{{ number_format($totalPurchases, 2) }}</h3>
             </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100 border-start border-4 border-info">
+            <div class="card-body">
+                <h6 class="text-muted small text-uppercase fw-bold mb-1">Gross Profit</h6>
+                <h3 class="fw-bold mb-0 text-info">{{ number_format($grossProfit, 2) }}</h3>
+                <small class="text-muted">(Sale - Purchase)</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100 border-start border-4 border-danger">
+            <div class="card-body">
+                <h6 class="text-muted small text-uppercase fw-bold mb-1">Total Expense</h6>
+                <h3 class="fw-bold mb-0 text-danger">{{ number_format($totalExpenses, 2) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
+            <div class="card-body">
+                <h6 class="text-muted small text-uppercase fw-bold mb-1">Net Profit</h6>
+                <h3 class="fw-bold mb-0 text-success">{{ number_format($netProfit, 2) }}</h3>
+                <small class="text-muted">(Gross Profit - Expense)</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100 border-start border-4 border-secondary">
+            <div class="card-body">
+                <h6 class="text-muted small text-uppercase fw-bold mb-1">Total Stock Adjustment</h6>
+                <h3 class="fw-bold mb-0 text-secondary">{{ number_format($totalStockAdjustment, 2) }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Daily Breakdown Table --}}
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 border-0">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-calendar3 me-2"></i>Daily Breakdown</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-3">Date</th>
+                        <th class="text-end">Sale</th>
+                        <th class="text-end">Purchase</th>
+                        <th class="text-end text-info">Gross Profit</th>
+                        <th class="text-end text-danger">Expense</th>
+                        <th class="text-end text-success">Net Profit</th>
+                        <th class="text-end pe-3">Stock Adj.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($dailyBreakdown as $row)
+                    <tr>
+                        <td class="ps-3 fw-bold">{{ date('d-m-Y', strtotime($row['date'])) }}</td>
+                        <td class="text-end">{{ number_format($row['sales'], 2) }}</td>
+                        <td class="text-end">{{ number_format($row['purchases'], 2) }}</td>
+                        <td class="text-end fw-bold text-info">{{ number_format($row['gross'], 2) }}</td>
+                        <td class="text-end text-danger">{{ number_format($row['expenses'], 2) }}</td>
+                        <td class="text-end fw-bold text-success">{{ number_format($row['net'], 2) }}</td>
+                        <td class="text-end pe-3 text-secondary">{{ number_format($row['stock_adj'], 2) }}</td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">No transactions found for the selected period.</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+                @if(count($dailyBreakdown))
+                <tfoot class="bg-light fw-bold border-top-2">
+                    <tr>
+                        <td class="ps-3">TOTALS</td>
+                        <td class="text-end">{{ number_format(collect($dailyBreakdown)->sum('sales'), 2) }}</td>
+                        <td class="text-end">{{ number_format(collect($dailyBreakdown)->sum('purchases'), 2) }}</td>
+                        <td class="text-end text-info">{{ number_format(collect($dailyBreakdown)->sum('gross'), 2) }}</td>
+                        <td class="text-end text-danger">{{ number_format(collect($dailyBreakdown)->sum('expenses'), 2) }}</td>
+                        <td class="text-end text-success">{{ number_format(collect($dailyBreakdown)->sum('net'), 2) }}</td>
+                        <td class="text-end pe-3 text-secondary">{{ number_format(collect($dailyBreakdown)->sum('stock_adj'), 2) }}</td>
+                    </tr>
+                </tfoot>
+                @endif
+            </table>
         </div>
     </div>
 </div>

@@ -19,22 +19,15 @@
         CUSTOMER LEDGER
     </div>
     
-    <div><strong>Cust:</strong> {{ $customer->name }}</div>
-    <div><strong>Date:</strong> {{ $start->format('d-M-y') }} to {{ $end->format('d-M-y') }}</div>
-    <div style="margin-top: 10px; margin-bottom: 5px; font-weight: bold; font-size: 13px;">Opening Balance: {{ number_format($ledger->opening, 0) }}</div>
+    <div style="font-size: 12px;"><strong>Cust:</strong> {{ $customer->name }} (#{{ $customer->id }})</div>
+    <div style="font-size: 11px;"><strong>Date:</strong> 
+        {{ $start ? $start->format('d-M-y') : 'All Time' }} to {{ $end ? $end->format('d-M-y') : 'Now' }}
+    </div>
     
-    <div class="divider"></div>
-    <table class="table" style="margin-top: 0px;">
-        <thead>
-            <tr>
-                <td style="width: 22%">Date</td>
-                <td style="width: 32%">Desc.</td>
-                <td style="width: 15%">Amt</td>
-                <td style="width: 15%">Receive</td>
-                <td style="width: 16%" align="right">Bal</td>
-            </tr>
-        </thead>
-    </table>
+    <div style="margin-top: 10px; margin-bottom: 5px; font-weight: bold; font-size: 14px;">
+        Previous Balance: {{ number_format($ledger->opening, 0) }}
+    </div>
+    
     <div class="divider"></div>
 
     <table class="table">
@@ -44,33 +37,37 @@
             @php 
                 $currentBalance += $txn['debit'];
                 $currentBalance -= $txn['credit'];
-                $isFirstLine = true;
             @endphp
+            
+            <tr>
+                <td style="font-size: 10px; width: 65px;">{{ \Carbon\Carbon::parse($txn['date'])->format('d-m-y') }}</td>
+                <td style="font-size: 14px; font-weight: bold;">
+                    @if($txn['debit'] > 0) Sale: {{ number_format($txn['debit'], 0) }} @endif
+                    @if($txn['credit'] > 0) Recv: {{ number_format($txn['credit'], 0) }} @endif
+                </td>
+                <td style="font-size: 11px; font-weight: bold;" align="right">B:{{ number_format($currentBalance, 0) }}</td>
+            </tr>
             
             @foreach($txn['lines'] as $line)
                 <tr>
-                    <td>@if($isFirstLine) {{ \Carbon\Carbon::parse($txn['date'])->format('d-m-y') }} @endif</td>
-                    <td>
-                        {{ $line['line1'] }}<br>
-                        {{ $line['line2'] }}
+                    <td colspan="3" style="font-size: 10px; padding-left: 10px; padding-bottom: 2px;">
+                        - {{ $line['line1'] }} {{ $line['line2'] }}
                     </td>
-                    <td>@if($isFirstLine && $txn['debit'] > 0) {{ number_format($txn['debit'], 0) }} @endif</td>
-                    <td>@if($isFirstLine && $txn['credit'] > 0) {{ number_format($txn['credit'], 0) }} @endif</td>
-                    <td align="right">@if($isFirstLine) {{ number_format($currentBalance, 0) }} @endif</td>
                 </tr>
-                @php $isFirstLine = false; @endphp
             @endforeach
-            <tr><td colspan="5"><div class="divider" style="border-top: 1px dotted #ccc;"></div></td></tr>
+            <tr><td colspan="3"><div class="divider" style="border-top: 1px dotted #ccc;"></div></td></tr>
             @empty
             <tr>
-                <td colspan="5" align="center" style="padding: 10px 0;">No transactions found.</td>
+                <td colspan="3" align="center" style="padding: 10px 0;">No transactions found.</td>
             </tr>
             @endforelse
         </tbody>
     </table>
 
     <div class="divider"></div>
-    <div style="margin-top: 5px; margin-bottom: 5px; font-weight: bold; font-size: 13px;">Closing Balance: {{ number_format($ledger->closing, 0) }}</div>
+    <div style="margin-top: 5px; margin-bottom: 5px; font-weight: bold; font-size: 16px;">
+        Closing Balance: {{ number_format($ledger->closing, 0) }}
+    </div>
 
     <div style="text-align: center; margin-top: 15px; font-size: 9px; opacity: 0.8;">
         <p>This is a computer generated summary.</p>

@@ -169,14 +169,21 @@ class ReportController extends Controller
 
     public function customersA4(Request $request, $id)
     {
-        $start = $request->start_date ? Carbon::parse($request->start_date) : Carbon::now()->startOfMonth();
-        $end = $request->end_date ? Carbon::parse($request->end_date) : Carbon::now();
+        $start = $request->filled('start_date') ? Carbon::parse($request->start_date) : null;
+        $end = $request->filled('end_date') ? Carbon::parse($request->end_date) : null;
+
+        $startDateStr = $start ? $start->format('Y-m-d') : null;
+        $endDateStr = $end ? $end->format('Y-m-d') : null;
 
         $customer = Customer::findOrFail($id);
-        $ledger = $this->finService->getCustomerBalances($id, $start, $end);
         
-        $ledgerData = $this->getLedgerTransactions($customer, $start->format('Y-m-d'), $end->format('Y-m-d'));
+        $ledgerData = $this->getLedgerTransactions($customer, $startDateStr, $endDateStr);
         $transactions = $ledgerData['transactions'];
+        
+        $ledger = (object)[
+            'opening' => $ledgerData['openingBalance'],
+            'closing' => $ledgerData['closingBalance']
+        ];
 
         $pdf = Pdf::loadView('pdf.customers_a4', compact('customer', 'ledger', 'start', 'end', 'transactions'));
         return $pdf->stream('customer_a4_' . $id . '.pdf');
@@ -184,19 +191,26 @@ class ReportController extends Controller
 
     public function customersThermal(Request $request, $id)
     {
-        $start = $request->start_date ?Carbon::parse($request->start_date) : Carbon::now()->startOfMonth();
-        $end = $request->end_date ?Carbon::parse($request->end_date) : Carbon::now();
+        $start = $request->filled('start_date') ? Carbon::parse($request->start_date) : null;
+        $end = $request->filled('end_date') ? Carbon::parse($request->end_date) : null;
+
+        $startDateStr = $start ? $start->format('Y-m-d') : null;
+        $endDateStr = $end ? $end->format('Y-m-d') : null;
 
         $customer = Customer::findOrFail($id);
-        $ledger = $this->finService->getCustomerBalances($id, $start, $end);
         
-        $ledgerData = $this->getLedgerTransactions($customer, $start->format('Y-m-d'), $end->format('Y-m-d'));
+        $ledgerData = $this->getLedgerTransactions($customer, $startDateStr, $endDateStr);
         $transactions = $ledgerData['transactions'];
+
+        $ledger = (object)[
+            'opening' => $ledgerData['openingBalance'],
+            'closing' => $ledgerData['closingBalance']
+        ];
 
         $pdf = Pdf::loadView('pdf.customers_thermal', compact('customer', 'ledger', 'start', 'end', 'transactions'));
         
-        // Dynamic height based on transactions
-        $dynamicHeight = 250 + (count($transactions) * 35);
+        // Dynamic height based on transactions (increased per transaction for multi-line details)
+        $dynamicHeight = 300 + (count($transactions) * 60);
         $pdf->setPaper([0.0, 0.0, 226.77, $dynamicHeight], 'portrait');
         return $pdf->stream('customer_thermal_' . $id . '.pdf');
     }
@@ -405,6 +419,11 @@ class ReportController extends Controller
             });
         }
 
+        if ($request->filled('ids')) {
+            $ids = is_array($request->ids) ? $request->ids : explode(',', $request->ids);
+            $query->whereIn('id', $ids);
+        }
+
         $showFilter = $request->get('show', 'active');
         if (in_array($showFilter, ['active', 'active_transactions'])) {
             $query->where('is_active', true);
@@ -454,14 +473,55 @@ class ReportController extends Controller
         $start = $request->get('start_date', date('Y-m-d'));
         $end = $request->get('end_date', date('Y-m-d'));
         
+        $totalSaleLines = 0;
+        $totalReceiptLines = 0;
+
         foreach ($data['customers'] as $customer) {
-            $ledgerData = $this->getLedgerTransactions($customer, $start, $end);
-            $customer->transactions = $ledgerData['transactions'];
+            // Detailed sales with items
+            $sales = \App\Models\Sale::with('items.product')
+                ->where('customer_id', $customer->id)
+                ->whereBetween('date', [$start, $end])
+                ->orderBy('date')
+                ->get();
+
+            $saleDetails = [];
+            foreach ($sales as $sale) {
+                foreach ($sale->items as $item) {
+                    $saleDetails[] = [
+                        'date'    => $sale->date,
+                        'product' => $item->product->name ?? 'Item',
+                        'qty'     => $item->qty,
+                        'unit'    => $item->product->unit ?? 'KG',
+                        'price'   => $item->price,
+                        'amount'  => $item->amount,
+                    ];
+                }
+            }
+            $customer->sale_details = $saleDetails;
+            $totalSaleLines += count($saleDetails);
+
+            // Detailed receipts
+            $receipts = \App\Models\Receipt::with('account')
+                ->where('customer_id', $customer->id)
+                ->whereBetween('date', [$start, $end])
+                ->orderBy('date')
+                ->get();
+
+            $receiptDetails = [];
+            foreach ($receipts as $receipt) {
+                $receiptDetails[] = [
+                    'date'    => $receipt->date,
+                    'account' => $receipt->account->name ?? 'Cash',
+                    'note'    => $receipt->note,
+                    'amount'  => $receipt->amount,
+                ];
+            }
+            $customer->receipt_details = $receiptDetails;
+            $totalReceiptLines += count($receiptDetails);
         }
 
         $pdf = Pdf::loadView('pdf.customers_list_thermal', $data);
-        // Set page dimensions to 80mm width (226.77pt) x 80mm height (226.77pt)
-        $pdf->setPaper([0.0, 0.0, 226.77, 226.77], 'portrait');
+        $pdf->setPaper([0.0, 0.0, 226.77, 283.46], 'portrait');
         return $pdf->stream('customers_thermal.pdf');
     }
 

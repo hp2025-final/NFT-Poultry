@@ -7,9 +7,17 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Receipt;
 use App\Models\Customer;
 use App\Models\Account;
+use App\Services\FinancialService;
+use Carbon\Carbon;
 
 class ReceiptController extends Controller
 {
+    protected $finService;
+
+    public function __construct(FinancialService $finService)
+    {
+        $this->finService = $finService;
+    }
     public function index(Request $request)
     {
         $startDate = $request->input('start_date', date('Y-m-d'));
@@ -74,16 +82,26 @@ class ReceiptController extends Controller
         return redirect()->route('receipts.index')->with('success', 'Receipt deleted successfully.');
     }
 
-    public function bulk()
+    public function bulk(Request $request)
     {
+        $date = $request->input('date', date('Y-m-d'));
         $customers = Customer::where('is_active', true)->orderBy('name')->get();
+
+        foreach ($customers as $customer) {
+            $customer->opening_balance_on_date = $this->finService->getCustomerBalances(
+                $customer->id, 
+                Carbon::parse($date), 
+                Carbon::parse($date)
+            )->opening;
+        }
+
         $accounts = Account::where('is_active', true)->orderBy('name')->get();
         // Default to Cash1 account
         $defaultAccount = $accounts->first(function ($acc) {
             return stripos($acc->name, 'cash') !== false;
         });
         $defaultAccountId = $defaultAccount ? $defaultAccount->id : ($accounts->first()->id ?? null);
-        return view('receipts.bulk', compact('customers', 'accounts', 'defaultAccountId'));
+        return view('receipts.bulk', compact('customers', 'accounts', 'defaultAccountId', 'date'));
     }
 
     public function storeBulk(Request $request)

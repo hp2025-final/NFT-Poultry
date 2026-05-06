@@ -49,6 +49,7 @@
                         <tr>
                             <th class="ps-3" style="width: 50px;">#</th>
                             <th>Customer Name</th>
+                            <th class="text-end" style="width: 150px;">Opening Balance</th>
                             <th style="width: 160px;">Quantity (KG)</th>
                             <th style="width: 160px;">Rate (Price)</th>
                             <th class="text-end pe-3" style="width: 140px;">Amount</th>
@@ -61,6 +62,9 @@
                             <td>
                                 <strong>{{ $customer->name }}</strong>
                                 <input type="hidden" name="customers[{{ $index }}][id]" value="{{ $customer->id }}">
+                            </td>
+                            <td class="text-end fw-bold text-primary">
+                                {{ number_format($customer->opening_balance_on_date, 2) }}
                             </td>
                             <td>
                                 <input type="number" name="customers[{{ $index }}][qty]" step="0.25" min="0" 
@@ -80,7 +84,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="text-center py-5">No active customers found.</td>
+                            <td colspan="6" class="text-center py-5">No active customers found.</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -88,6 +92,7 @@
                     <tfoot class="bg-light">
                         <tr class="fw-bold">
                             <td class="ps-3" colspan="2">Totals</td>
+                            <td class="text-end text-primary" id="totalOpening">{{ number_format($customers->sum('opening_balance_on_date'), 2) }}</td>
                             <td class="text-center" id="totalQty">0</td>
                             <td></td>
                             <td class="text-end pe-3" id="totalAmount">0</td>
@@ -130,6 +135,15 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.bulk-qty, .bulk-rate').forEach(function(el) {
         el.addEventListener('input', recalc);
     });
+    
+    // Reload page on date change to update opening balances
+    const dateInput = document.querySelector('.js-date');
+    if (dateInput && dateInput._flatpickr) {
+        dateInput._flatpickr.set('onChange', function(selectedDates, dateStr) {
+            window.location.href = "{{ route('sales.bulk') }}?date=" + dateStr;
+        });
+    }
+
     recalc();
 });
 </script>

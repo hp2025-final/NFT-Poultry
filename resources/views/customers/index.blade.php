@@ -77,7 +77,10 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light">
                     <tr>
-                        <th class="ps-3">Name</th>
+                        <th class="ps-3" style="width: 40px;">
+                            <input type="checkbox" id="selectAll" class="form-check-input">
+                        </th>
+                        <th>Name</th>
                         <th class="text-end">Opening</th>
                         <th class="text-end">Sale</th>
                         <th class="text-end">Receive</th>
@@ -89,6 +92,9 @@
                     @forelse($customers as $customer)
                     <tr>
                         <td class="ps-3">
+                            <input type="checkbox" name="customer_ids[]" value="{{ $customer->id }}" class="form-check-input customer-checkbox">
+                        </td>
+                        <td>
                             <div class="fw-bold">{{ $customer->name }}</div>
                             <div class="text-muted small">{{ $customer->phone ?? '--' }}</div>
                         </td>
@@ -115,7 +121,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">
+                        <td colspan="7" class="text-center py-5 text-muted">
                             <i class="bi bi-people d-block fs-1 mb-2"></i>No customers found.
                         </td>
                     </tr>
@@ -124,7 +130,7 @@
                 @if($customers->count())
                 <tfoot class="bg-light">
                     <tr class="fw-bold">
-                        <td class="ps-3">Totals ({{ $customers->count() }})</td>
+                        <td class="ps-3" colspan="2">Totals ({{ $customers->count() }})</td>
                         <td class="text-end">{{ number_format($totalOpening, 0) }}</td>
                         <td class="text-end">{{ number_format($totalDr, 0) }}</td>
                         <td class="text-end">{{ number_format($totalCr, 0) }}</td>
@@ -137,4 +143,46 @@
         </div>
     </div>
 </div>
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.customer-checkbox');
+    const thermalBtn = document.querySelector('a[href*="customers-list/thermal"]');
+    const a4Btn = document.querySelector('a[href*="customers-list/a4"]');
+    
+    const baseThermalUrl = "{!! route('reports.customers_list_thermal', request()->query()) !!}";
+    const baseA4Url = "{!! route('reports.customers_list_a4', request()->query()) !!}";
+
+    function updatePrintLinks() {
+        const selectedIds = Array.from(checkboxes)
+            .filter(i => i.checked)
+            .map(i => i.value);
+        
+        if (selectedIds.length > 0) {
+            const idsParam = selectedIds.join(',');
+            thermalBtn.href = baseThermalUrl + (baseThermalUrl.includes('?') ? '&' : '?') + 'ids=' + idsParam;
+            a4Btn.href = baseA4Url + (baseA4Url.includes('?') ? '&' : '?') + 'ids=' + idsParam;
+            thermalBtn.classList.replace('btn-outline-dark', 'btn-primary');
+            a4Btn.classList.replace('btn-outline-dark', 'btn-primary');
+        } else {
+            thermalBtn.href = baseThermalUrl;
+            a4Btn.href = baseA4Url;
+            thermalBtn.classList.replace('btn-primary', 'btn-outline-dark');
+            a4Btn.classList.replace('btn-primary', 'btn-outline-dark');
+        }
+    }
+
+    selectAll.addEventListener('change', function() {
+        checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        updatePrintLinks();
+    });
+
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updatePrintLinks);
+    });
+});
+</script>
+@endsection
 @endsection

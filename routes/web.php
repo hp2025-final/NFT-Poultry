@@ -87,6 +87,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/daily/thermal', [\App\Http\Controllers\DailyReportController::class, 'thermal'])->name('reports.daily_thermal');
     Route::get('/reports/trial-balance', [\App\Http\Controllers\FinancialReportController::class, 'trialBalance'])->name('reports.trial_balance');
     Route::get('/reports/profit-loss', [\App\Http\Controllers\FinancialReportController::class, 'profitLoss'])->name('reports.profit_loss');
+    Route::get('/reports/profit-loss/thermal', [\App\Http\Controllers\FinancialReportController::class, 'profitLossThermal'])->name('reports.profit_loss_thermal');
     Route::get('/reports/balance-sheet', [\App\Http\Controllers\FinancialReportController::class, 'balanceSheet'])->name('reports.balance_sheet');
     
     Route::get('/backup', [\App\Http\Controllers\BackupController::class, 'index'])->name('backup.index');

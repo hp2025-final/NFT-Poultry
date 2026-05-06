@@ -49,6 +49,7 @@
                         <tr>
                             <th class="ps-3" style="width: 50px;">#</th>
                             <th>Customer Name</th>
+                            <th class="text-end" style="width: 150px;">Opening Balance</th>
                             <th style="width: 200px;">Amount Received</th>
                             <th style="width: 250px;">Note</th>
                         </tr>
@@ -60,6 +61,9 @@
                             <td>
                                 <strong>{{ $customer->name }}</strong>
                                 <input type="hidden" name="customers[{{ $index }}][id]" value="{{ $customer->id }}">
+                            </td>
+                            <td class="text-end fw-bold text-primary">
+                                {{ number_format($customer->opening_balance_on_date, 2) }}
                             </td>
                             <td>
                                 <input type="number" name="customers[{{ $index }}][amount]" step="0.01" min="0"
@@ -73,7 +77,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="4" class="text-center py-5">No active customers found.</td>
+                            <td colspan="5" class="text-center py-5">No active customers found.</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -81,6 +85,7 @@
                     <tfoot class="bg-light">
                         <tr class="fw-bold">
                             <td class="ps-3" colspan="2">Total</td>
+                            <td class="text-end text-primary">{{ number_format($customers->sum('opening_balance_on_date'), 2) }}</td>
                             <td id="totalAmount">0</td>
                             <td></td>
                         </tr>
@@ -111,6 +116,15 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.bulk-amount').forEach(function(el) {
         el.addEventListener('input', recalc);
     });
+
+    // Reload page on date change to update opening balances
+    const dateInput = document.querySelector('.js-date');
+    if (dateInput && dateInput._flatpickr) {
+        dateInput._flatpickr.set('onChange', function(selectedDates, dateStr) {
+            window.location.href = "{{ route('receipts.bulk') }}?date=" + dateStr;
+        });
+    }
+
     recalc();
 });
 </script>

@@ -9,9 +9,18 @@ use App\Models\SaleItem;
 use App\Models\Product;
 use App\Models\Customer;
 use App\Models\CustomerPrice;
+use App\Models\Receipt;
+use App\Services\FinancialService;
+use Carbon\Carbon;
 
 class SaleController extends Controller
 {
+    protected $finService;
+
+    public function __construct(FinancialService $finService)
+    {
+        $this->finService = $finService;
+    }
     public function index(Request $request)
     {
         $startDate = $request->input('start_date', date('Y-m-d'));
@@ -255,12 +264,22 @@ class SaleController extends Controller
         return view('sales.view', compact('sale'));
     }
 
-    public function bulk()
+    public function bulk(Request $request)
     {
+        $date = $request->input('date', date('Y-m-d'));
         $customers = Customer::where('is_active', true)->orderBy('name')->get();
+        
+        foreach ($customers as $customer) {
+            $customer->opening_balance_on_date = $this->finService->getCustomerBalances(
+                $customer->id, 
+                Carbon::parse($date), 
+                Carbon::parse($date)
+            )->opening;
+        }
+
         // Given there's only 1 product, select the first active one as default
         $product = Product::where('is_active', true)->first();
-        return view('sales.bulk', compact('customers', 'product'));
+        return view('sales.bulk', compact('customers', 'product', 'date'));
     }
 
     public function storeBulk(Request $request)
