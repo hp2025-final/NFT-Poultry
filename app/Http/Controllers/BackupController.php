@@ -13,27 +13,39 @@ class BackupController extends Controller
         return view('backup.index');
     }
 
-    // ─── Helper: find mysql binaries ──────────────────────────────────
+    // ─── Helper: check if shell functions are available ───────────────
+    private function shellFunctionsAvailable(): bool
+    {
+        $disabled = array_map('trim', explode(',', ini_get('disable_functions') ?: ''));
+        return !in_array('exec', $disabled) && function_exists('exec');
+    }
+
+    // ─── Helper: find mysql binaries (safe for Cloudways) ────────────
     private function findMysqlBinary(string $binary): ?string
     {
-        $paths = [
-            $binary,
-            '/usr/bin/' . $binary,
-            '/usr/local/bin/' . $binary,
-            'c:\\xampp\\mysql\\bin\\' . $binary . '.exe',
-            'C:\\xampp\\mysql\\bin\\' . $binary . '.exe',
-        ];
+        if (!$this->shellFunctionsAvailable()) {
+            return null;
+        }
 
-        foreach ($paths as $path) {
-            if (PHP_OS_FAMILY === 'Windows') {
+        if (PHP_OS_FAMILY === 'Windows') {
+            $paths = [
+                'c:\\xampp\\mysql\\bin\\' . $binary . '.exe',
+                'C:\\xampp\\mysql\\bin\\' . $binary . '.exe',
+            ];
+            foreach ($paths as $path) {
                 if (file_exists($path)) {
                     return '"' . $path . '"';
                 }
-            } else {
+            }
+        } else {
+            // Safe check — only if shell functions are available
+            try {
                 $result = trim(shell_exec("which {$binary} 2>/dev/null") ?? '');
                 if ($result) {
                     return $result;
                 }
+            } catch (\Exception $e) {
+                return null;
             }
         }
 
@@ -57,21 +69,24 @@ class BackupController extends Controller
     // ─── Option 3: Backup (Download .sql) ─────────────────────────────
     public function download()
     {
+        set_time_limit(0);
         $database = config('database.connections.mysql.database');
 
         // Try mysqldump first (fast, works on XAMPP/local)
-        $mysqldump = $this->findMysqlBinary('mysqldump');
-        if ($mysqldump && function_exists('exec')) {
-            $filename = "database-backup-" . date('Y-m-d-H-i-s') . ".sql";
-            $path = storage_path('app/' . $filename);
+        if ($this->shellFunctionsAvailable()) {
+            $mysqldump = $this->findMysqlBinary('mysqldump');
+            if ($mysqldump) {
+                $filename = "database-backup-" . date('Y-m-d-H-i-s') . ".sql";
+                $path = storage_path('app/' . $filename);
 
-            $flags = $this->buildConnectionFlags();
-            $command = "{$mysqldump} {$flags} {$database} > \"{$path}\" 2>&1";
+                $flags = $this->buildConnectionFlags();
+                $command = "{$mysqldump} {$flags} {$database} > \"{$path}\" 2>&1";
 
-            exec($command, $output, $returnCode);
+                exec($command, $output, $returnCode);
 
-            if (file_exists($path) && filesize($path) > 0) {
-                return response()->download($path)->deleteFileAfterSend(true);
+                if (file_exists($path) && filesize($path) > 0) {
+                    return response()->download($path)->deleteFileAfterSend(true);
+                }
             }
         }
 
@@ -81,6 +96,12 @@ class BackupController extends Controller
 
             $filename = "database-backup-" . date('Y-m-d-H-i-s') . ".sql";
             $path = storage_path('app/' . $filename);
+
+            // Ensure directory exists
+            $dir = dirname($path);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0775, true);
+            }
 
             file_put_contents($path, $sql);
 
@@ -210,7 +231,6 @@ class BackupController extends Controller
         }
 
         // Tables to import, in dependency order.
-        // Format: 'sqlite_table' => ['mysql_table' => '...', 'columns' => [...mapping...]]
         $tableMap = $this->getSqliteToMysqlMap();
 
         $summary = [];
@@ -218,18 +238,28 @@ class BackupController extends Controller
         try {
             DB::statement('SET FOREIGN_KEY_CHECKS = 0');
 
-            // Truncate all target MySQL tables first
+            // Truncate all target MySQL tables first (outside transaction — TRUNCATE auto-commits)
             foreach ($tableMap as $config) {
                 DB::table($config['mysql_table'])->truncate();
             }
 
+            // Start transaction AFTER truncates
             DB::beginTransaction();
 
             // Import each table
             foreach ($tableMap as $sqliteTable => $config) {
+                // Check if SQLite table exists
+                $tableCheck = $sqlite->query("SELECT name FROM sqlite_master WHERE type='table' AND name='{$sqliteTable}'")->fetch();
+                if (!$tableCheck) {
+                    $summary[] = "{$config['mysql_table']}: skipped (not in SQLite)";
+                    continue;
+                }
+
                 $rows = $sqlite->query("SELECT * FROM [{$sqliteTable}]")->fetchAll(\PDO::FETCH_ASSOC);
                 $imported = 0;
 
+                // Batch insert for performance
+                $batch = [];
                 foreach ($rows as $row) {
                     $mapped = [];
                     foreach ($config['columns'] as $sqliteCol => $mysqlCol) {
@@ -239,9 +269,20 @@ class BackupController extends Controller
                     }
 
                     if (!empty($mapped)) {
-                        DB::table($config['mysql_table'])->insert($mapped);
+                        $batch[] = $mapped;
                         $imported++;
+
+                        // Insert in chunks of 100 for performance
+                        if (count($batch) >= 100) {
+                            DB::table($config['mysql_table'])->insert($batch);
+                            $batch = [];
+                        }
                     }
+                }
+
+                // Insert remaining rows
+                if (!empty($batch)) {
+                    DB::table($config['mysql_table'])->insert($batch);
                 }
 
                 $summary[] = "{$config['mysql_table']}: {$imported} rows";
@@ -254,7 +295,7 @@ class BackupController extends Controller
             return back()->with('success', "SQLite data restored successfully! Imported: {$summaryText}. Please log out and log back in to verify.");
 
         } catch (\Exception $e) {
-            DB::rollBack();
+            try { DB::rollBack(); } catch (\Exception $ex) { /* ignore if no active transaction */ }
             DB::statement('SET FOREIGN_KEY_CHECKS = 1');
             Log::error('SQLite restore failed: ' . $e->getMessage());
             return back()->with('error', 'SQLite restore failed: ' . $e->getMessage());
