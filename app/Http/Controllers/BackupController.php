@@ -218,12 +218,12 @@ class BackupController extends Controller
         try {
             DB::statement('SET FOREIGN_KEY_CHECKS = 0');
 
-            DB::beginTransaction();
-
             // Truncate all target MySQL tables first
             foreach ($tableMap as $config) {
                 DB::table($config['mysql_table'])->truncate();
             }
+
+            DB::beginTransaction();
 
             // Import each table
             foreach ($tableMap as $sqliteTable => $config) {
