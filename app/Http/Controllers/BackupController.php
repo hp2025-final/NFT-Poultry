@@ -170,6 +170,7 @@ class BackupController extends Controller
     // ─── Option 2: Restore from MySQL .sql file ───────────────────────
     public function restore(Request $request)
     {
+        set_time_limit(0);
         $request->validate([
             'sql_file' => 'required|file|max:50000',
         ]);
@@ -177,29 +178,22 @@ class BackupController extends Controller
         $file = $request->file('sql_file');
         $path = $file->path();
 
-        $database = config('database.connections.mysql.database');
-        $mysql = $this->findMysqlBinary('mysql');
+        try {
+            // Read and execute the SQL file directly using Laravel's DB facade
+            $sql = file_get_contents($path);
+            DB::unprepared($sql);
 
-        if (!$mysql) {
-            return back()->with('error', 'mysql client not found. Please ensure MySQL tools are accessible on your server.');
-        }
-
-        $flags = $this->buildConnectionFlags();
-        $command = "{$mysql} {$flags} {$database} < \"{$path}\" 2>&1";
-
-        exec($command, $output, $returnCode);
-
-        if ($returnCode === 0) {
             return back()->with('success', 'Database restored successfully from MySQL backup! Please log out and log back in to verify.');
+        } catch (\Exception $e) {
+            Log::error('Restore failed: ' . $e->getMessage());
+            return back()->with('error', 'Database restore failed: ' . $e->getMessage());
         }
-
-        Log::error('Restore failed: ' . implode("\n", $output));
-        return back()->with('error', 'Database restore failed. Check server logs for details.');
     }
 
     // ─── Option 1: Restore from SQLite (nfdev.db) ─────────────────────
     public function restoreSqlite(Request $request)
     {
+        set_time_limit(0);
         $request->validate([
             'sqlite_file' => 'required|file|max:50000',
         ]);
