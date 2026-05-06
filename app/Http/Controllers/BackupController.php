@@ -58,26 +58,113 @@ class BackupController extends Controller
     public function download()
     {
         $database = config('database.connections.mysql.database');
+
+        // Try mysqldump first (fast, works on XAMPP/local)
         $mysqldump = $this->findMysqlBinary('mysqldump');
+        if ($mysqldump && function_exists('exec')) {
+            $filename = "database-backup-" . date('Y-m-d-H-i-s') . ".sql";
+            $path = storage_path('app/' . $filename);
 
-        if (!$mysqldump) {
-            return back()->with('error', 'mysqldump not found. Please ensure MySQL tools are accessible on your server.');
+            $flags = $this->buildConnectionFlags();
+            $command = "{$mysqldump} {$flags} {$database} > \"{$path}\" 2>&1";
+
+            exec($command, $output, $returnCode);
+
+            if (file_exists($path) && filesize($path) > 0) {
+                return response()->download($path)->deleteFileAfterSend(true);
+            }
         }
 
-        $filename = "database-backup-" . date('Y-m-d-H-i-s') . ".sql";
-        $path = storage_path('app/' . $filename);
+        // Fallback: Pure PHP backup (works on Cloudways & shared hosting)
+        try {
+            $sql = $this->generatePurePHPDump($database);
 
-        $flags = $this->buildConnectionFlags();
-        $command = "{$mysqldump} {$flags} {$database} > \"{$path}\" 2>&1";
+            $filename = "database-backup-" . date('Y-m-d-H-i-s') . ".sql";
+            $path = storage_path('app/' . $filename);
 
-        exec($command, $output, $returnCode);
+            file_put_contents($path, $sql);
 
-        if (file_exists($path) && filesize($path) > 0) {
-            return response()->download($path)->deleteFileAfterSend(true);
+            if (file_exists($path) && filesize($path) > 0) {
+                return response()->download($path)->deleteFileAfterSend(true);
+            }
+
+            return back()->with('error', 'Backup file was empty. Please try again.');
+        } catch (\Exception $e) {
+            Log::error('Backup failed: ' . $e->getMessage());
+            return back()->with('error', 'Backup generation failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Generate a SQL dump using pure PHP/PDO (no exec/mysqldump needed).
+     */
+    private function generatePurePHPDump(string $database): string
+    {
+        $sql = "-- NFT-Poultry Database Backup\n";
+        $sql .= "-- Generated: " . date('Y-m-d H:i:s') . "\n";
+        $sql .= "-- Database: {$database}\n";
+        $sql .= "SET FOREIGN_KEY_CHECKS = 0;\n\n";
+
+        // Tables to backup in dependency order
+        $tables = [
+            'company_infos', 'accounts', 'expense_categories',
+            'customers', 'suppliers', 'products',
+            'customer_prices', 'expenses',
+            'sales', 'sale_items',
+            'purchases', 'purchase_items',
+            'receipts', 'payments',
+            'equity_txns', 'stock_adjustments',
+            'users',
+        ];
+
+        foreach ($tables as $table) {
+            // Check if table exists
+            try {
+                $columns = DB::select("SHOW COLUMNS FROM `{$table}`");
+            } catch (\Exception $e) {
+                $sql .= "-- Table `{$table}` not found, skipping.\n\n";
+                continue;
+            }
+
+            $columnNames = array_map(fn($col) => $col->Field, $columns);
+
+            // CREATE TABLE statement
+            $createResult = DB::select("SHOW CREATE TABLE `{$table}`");
+            if (!empty($createResult)) {
+                $createSql = $createResult[0]->{'Create Table'};
+                $sql .= "DROP TABLE IF EXISTS `{$table}`;\n";
+                $sql .= $createSql . ";\n\n";
+            }
+
+            // INSERT statements
+            $rows = DB::table($table)->get();
+            if ($rows->count() > 0) {
+                $escapedCols = implode('`, `', $columnNames);
+
+                foreach ($rows->chunk(100) as $chunk) {
+                    $sql .= "INSERT INTO `{$table}` (`{$escapedCols}`) VALUES\n";
+                    $values = [];
+
+                    foreach ($chunk as $row) {
+                        $rowValues = [];
+                        foreach ($columnNames as $col) {
+                            $val = $row->{$col};
+                            if (is_null($val)) {
+                                $rowValues[] = 'NULL';
+                            } else {
+                                $rowValues[] = "'" . addslashes((string) $val) . "'";
+                            }
+                        }
+                        $values[] = '(' . implode(', ', $rowValues) . ')';
+                    }
+
+                    $sql .= implode(",\n", $values) . ";\n\n";
+                }
+            }
         }
 
-        Log::error('Backup failed: ' . implode("\n", $output));
-        return back()->with('error', 'Backup generation failed. Check server logs for details.');
+        $sql .= "SET FOREIGN_KEY_CHECKS = 1;\n";
+        return $sql;
     }
 
     // ─── Option 2: Restore from MySQL .sql file ───────────────────────
