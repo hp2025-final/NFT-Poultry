@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>Customer Ledger - Thermal</title>
     <style>
-        @page { margin: 10px; }
+        @page { size: 79mm auto; margin: 2mm 8mm 2mm 1mm; }
         body { font-family: 'Courier', monospace; font-size: 11px; line-height: 1.2; width: 100%; }
         .table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
         .table td { padding: 3px 0; font-size: 11px; vertical-align: top; }

@@ -61,7 +61,7 @@
                         <td class="text-end fw-bold">{{ number_format($purchase->total_amount, 0) }}</td>
                         <td class="text-center">
                             <div class="d-flex justify-content-center gap-1 flex-wrap">
-                                <a href="{{ route('reports.purchase_invoice_thermal', $purchase->id) }}" target="_blank" class="btn btn-sm btn-outline-success" title="Print Thermal 79mm">
+                                <a href="{{ route('reports.purchase_invoice_thermal', $purchase->id) }}" target="_blank" class="btn btn-sm btn-outline-success" title="Print Thermal 70mm">
                                     <i class="bi bi-printer"></i>
                                 </a>
                                 <a href="{{ route('purchases.edit', $purchase->id) }}" class="btn btn-sm btn-outline-primary" title="Edit">

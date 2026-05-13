@@ -7,7 +7,7 @@
     <style>
         @page {
             size: 79mm auto;
-            margin: 4mm 3mm 3mm 3mm;
+            margin: 4mm 8mm 3mm 1mm;
         }
 
         * {

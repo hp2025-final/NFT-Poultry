@@ -59,7 +59,7 @@
                     <li>A4 Sales & Purchase Invoices</li>
                     <li>Account & Supplier Ledgers</li>
                     <li>Statement of Owner's Equity</li>
-                    <li>80mm Thermal Receipts</li>
+                    <li>70mm Thermal Receipts</li>
                 </ul>
                 <p class="mb-0">
                     <small>Changing your address and phone number will immediately affect all newly generated PDFs across the accounting system.</small>

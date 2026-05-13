@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>Daily Customer Summary - Thermal</title>
     <style>
-        @page { margin: 10px; }
+        @page { size: 79mm auto; margin: 2mm 8mm 2mm 1mm; }
         body { font-family: 'Courier', monospace; font-size: 10px; line-height: 1.1; width: 100%; }
         .center { text-align: center; }
         .bold { font-weight: bold; }

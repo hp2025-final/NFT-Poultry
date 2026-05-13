@@ -77,7 +77,7 @@ class DailyReportController extends Controller
         $estimatedHeight = 450 + ($rowCount * 30); // Base height for summary + padding, plus 30pt per row
 
         $pdf = Pdf::loadView('pdf.daily_report_thermal', $data);
-        $pdf->setPaper([0.0, 0.0, 226.77, $estimatedHeight], 'portrait');
+        $pdf->setPaper([0.0, 0.0, 223.94, $estimatedHeight], 'portrait');
         return $pdf->stream('daily_report_thermal_' . $date . '.pdf');
     }
 }

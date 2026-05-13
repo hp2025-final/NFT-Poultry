@@ -10,7 +10,7 @@
     </div>
     <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
         <a href="{{ route('reports.profit_loss_thermal', ['start_date' => $start, 'end_date' => $end]) }}" target="_blank" class="btn btn-outline-info shadow-sm no-print me-2">
-            <i class="bi bi-printer-fill me-1"></i>Print Thermal (79mm)
+            <i class="bi bi-printer-fill me-1"></i>Print Thermal (70mm)
         </a>
         <button onclick="window.print()" class="btn btn-outline-secondary shadow-sm no-print">
             <i class="bi bi-printer me-1"></i>Print Report

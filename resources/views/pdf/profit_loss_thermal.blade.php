@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>Profit & Loss - Thermal</title>
     <style>
-        @page { margin: 5px; }
+        @page { size: 79mm auto; margin: 2mm 8mm 2mm 1mm; }
         body { font-family: 'Courier', monospace; font-size: 12px; line-height: 1.3; width: 100%; font-weight: bold; }
         .center { text-align: center; }
         .bold { font-weight: bold; }

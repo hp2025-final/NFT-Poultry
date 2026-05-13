@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>Customers Report - Thermal</title>
     <style>
-        @page { margin: 0mm 12mm 0mm 0mm; }
+        @page { size: 79mm auto; margin: 0mm 8mm 0mm 1mm; }
         body {
             font-family: 'Courier', monospace;
             font-size: 11px;

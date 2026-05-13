@@ -211,7 +211,7 @@ class ReportController extends Controller
         
         // Dynamic height based on transactions (increased per transaction for multi-line details)
         $dynamicHeight = 300 + (count($transactions) * 60);
-        $pdf->setPaper([0.0, 0.0, 226.77, $dynamicHeight], 'portrait');
+        $pdf->setPaper([0.0, 0.0, 223.94, $dynamicHeight], 'portrait');
         return $pdf->stream('customer_thermal_' . $id . '.pdf');
     }
 
@@ -232,7 +232,7 @@ class ReportController extends Controller
         }
 
         $pdf = Pdf::loadView('pdf.customers_closing_thermal', compact('balances', 'total'));
-        $pdf->setPaper([0.0, 0.0, 226.77, 1000.0], 'portrait');
+        $pdf->setPaper([0.0, 0.0, 223.94, 1000.0], 'portrait');
         return $pdf->stream('customers_closing.pdf');
     }
 
@@ -272,7 +272,7 @@ class ReportController extends Controller
         $dynamicHeight = 280 + ($itemCount * 15);
 
         $pdf = Pdf::loadView('pdf.sale_invoice_thermal', compact('sale'));
-        $pdf->setPaper([0.0, 0.0, 226.77, $dynamicHeight], 'portrait');
+        $pdf->setPaper([0.0, 0.0, 223.94, $dynamicHeight], 'portrait');
         return $pdf->stream('sale_thermal_' . $id . '.pdf');
     }
 
@@ -289,7 +289,7 @@ class ReportController extends Controller
     {
         $purchase = Purchase::with(['supplier', 'items.product'])->findOrFail($id);
         $pdf = Pdf::loadView('pdf.purchase_invoice_thermal', compact('purchase'));
-        $pdf->setPaper([0.0, 0.0, 226.77, 800.0], 'portrait');
+        $pdf->setPaper([0.0, 0.0, 223.94, 800.0], 'portrait');
         return $pdf->stream('purchase_thermal_' . $id . '.pdf');
     }
 
@@ -401,7 +401,7 @@ class ReportController extends Controller
         $data = $this->buildDailyCustomerData($request);
         // Height auto for continuous roll — each customer has page-break-after
         $pdf = Pdf::loadView('pdf.daily_customer_thermal', $data);
-        $pdf->setPaper([0.0, 0.0, 226.77, 300.0], 'portrait');
+        $pdf->setPaper([0.0, 0.0, 223.94, 300.0], 'portrait');
         return $pdf->stream('daily_customer_thermal.pdf');
     }
 
@@ -521,7 +521,7 @@ class ReportController extends Controller
         }
 
         $pdf = Pdf::loadView('pdf.customers_list_thermal', $data);
-        $pdf->setPaper([0.0, 0.0, 226.77, 283.46], 'portrait');
+        $pdf->setPaper([0.0, 0.0, 223.94, 283.46], 'portrait');
         return $pdf->stream('customers_thermal.pdf');
     }
 
@@ -581,7 +581,7 @@ class ReportController extends Controller
         $rowCount = $data['suppliers']->count();
         $height = 200 + ($rowCount * 18);
         $pdf = Pdf::loadView('pdf.suppliers_list_thermal', $data);
-        $pdf->setPaper([0.0, 0.0, 226.77, $height], 'portrait');
+        $pdf->setPaper([0.0, 0.0, 223.94, $height], 'portrait');
         return $pdf->stream('suppliers_thermal.pdf');
     }
 }

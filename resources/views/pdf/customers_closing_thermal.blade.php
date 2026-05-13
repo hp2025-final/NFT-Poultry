@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>Customers Closing Balances - Thermal</title>
     <style>
-        @page { margin: 10px; }
+        @page { size: 79mm auto; margin: 2mm 8mm 2mm 1mm; }
         body { font-family: 'Courier', monospace; font-size: 11px; line-height: 1.2; width: 100%; }
         .center { text-align: center; }
         .bold { font-weight: bold; }

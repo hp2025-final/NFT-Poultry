@@ -4,8 +4,8 @@
     <meta http-equiv="Content-Type" content="text-html; charset=utf-8"/>
     <title>@yield('title', 'Receipt')</title>
     <style>
-        @page { size: 79mm auto; margin: 2mm; }
-        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 9pt; margin: 0; padding: 0; line-height: 1.3; width: 75mm; }
+        @page { size: 79mm auto; margin: 2mm 8mm 2mm 1mm; }
+        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 9pt; margin: 0; padding: 0; line-height: 1.3; width: 70mm; }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .table { width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 8pt; }

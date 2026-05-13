@@ -104,7 +104,7 @@ class FinancialReportController extends Controller
         // Height: Header/Summary ~300pt + ~200pt per daily breakup (vertical layout)
         $dayCount = count($data['dailyBreakdown']);
         $dynamicHeight = 300 + ($dayCount * 200);
-        $pdf->setPaper([0.0, 0.0, 226.77, $dynamicHeight], 'portrait');
+        $pdf->setPaper([0.0, 0.0, 223.94, $dynamicHeight], 'portrait');
         
         return $pdf->stream('profit_loss_thermal.pdf');
     }

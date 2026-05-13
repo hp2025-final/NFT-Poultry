@@ -62,7 +62,7 @@
                         <td class="text-center">
                             <div class="d-flex justify-content-center gap-1 flex-wrap">
                                 {{-- Thermal Print --}}
-                                <a href="{{ route('reports.sale_invoice_thermal', $sale->id) }}" target="_blank" class="btn btn-sm btn-outline-success" title="Print Thermal 79mm">
+                                <a href="{{ route('reports.sale_invoice_thermal', $sale->id) }}" target="_blank" class="btn btn-sm btn-outline-success" title="Print Thermal 70mm">
                                     <i class="bi bi-printer"></i>
                                 </a>
                                 {{-- Edit --}}

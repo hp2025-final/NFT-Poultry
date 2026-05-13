@@ -55,7 +55,7 @@
 {{-- Print Buttons --}}
 <div class="d-flex gap-2 mb-3 justify-content-end">
     <a href="{{ route('reports.suppliers_list_thermal', request()->query()) }}" target="_blank" class="btn btn-outline-dark btn-sm">
-        <i class="bi bi-printer me-1"></i>Thermal Print (79mm)
+        <i class="bi bi-printer me-1"></i>Thermal Print (70mm)
     </a>
     <a href="{{ route('reports.suppliers_list_a4', request()->query()) }}" target="_blank" class="btn btn-outline-dark btn-sm">
         <i class="bi bi-file-earmark-text me-1"></i>A4 Print
